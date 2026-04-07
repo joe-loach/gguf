@@ -27,7 +27,7 @@ use memmap2::Mmap;
 use std::fs::File;
 use std::path::Path;
 
-use crate::error::{Result, Error};
+use crate::error::{Error, Result};
 use crate::{ByteOrder, GGUFModel, FILE_MAGIC_GGUF_BE, FILE_MAGIC_GGUF_LE};
 
 /// Memory-mapped GGUF file

@@ -98,8 +98,8 @@
 
 pub mod error;
 
-use error::{Result, Error};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
+use error::{Error, Result};
 #[cfg(feature = "logging")]
 use log::debug;
 use serde::{Deserialize, Serialize};

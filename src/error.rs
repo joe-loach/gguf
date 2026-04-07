@@ -19,11 +19,15 @@ impl fmt::Display for Error {
         match self {
             Error::IO(e) => write!(f, "{e}"),
             Error::FileTooSmall => write!(f, "gguf file too small to be valid"),
-            Error::InvalidVersion(v) => write!(f, "invalid version {v}, only supports versions: 1 | 2 | 3"),
+            Error::InvalidVersion(v) => {
+                write!(f, "invalid version {v}, only supports versions: 1 | 2 | 3")
+            }
             Error::InvalidMetaValueType(t) => write!(f, "invalid metadata value type {t}"),
             Error::InvalidGGMLType(t) => write!(f, "invalid ggml type {t}"),
             Error::UnsupportedArrayValue => write!(f, "unsupported item value type: Array"),
-            Error::UnsupportedFileFormat(magic) => write!(f, "unsupported file format {}", fmt_magic(magic)),
+            Error::UnsupportedFileFormat(magic) => {
+                write!(f, "unsupported file format {}", fmt_magic(magic))
+            }
             Error::TensorWriteIndex(_) => write!(f, "tensor index is out of bounds"),
         }
     }

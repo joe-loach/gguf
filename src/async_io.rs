@@ -29,7 +29,7 @@
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-use crate::error::{Result, Error};
+use crate::error::{Error, Result};
 use crate::{ByteOrder, GGUFModel, FILE_MAGIC_GGUF_BE, FILE_MAGIC_GGUF_LE};
 
 /// Async GGUF file container
