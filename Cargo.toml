@@ -11,15 +11,21 @@ homepage = "https://github.com/zackshen/gguf"
 include = ["src/**/*", "README.md"]
 categories = ["parser-implementations", "science"]
 
+[[bin]]
+name = "gguf"
+path = "src/bin/gguf.rs"
+required-features = ["cli"]
+
 [dependencies]
 anyhow = "1.0.101"
 byteorder = "1.5.0"
-clap = { version = "4.5.58", features = ["derive"] }
-comfy-table = "7.2.2"
 log = "0.4.27"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["arbitrary_precision"] }
-simple_logger = "5.0.1"
+# CLI deps
+clap = { version = "4.5.58", features = ["derive"], optional = true }
+comfy-table = { version = "7.2.2", optional = true }
+simple_logger = { version = "5.0.1", optional = true }
 
 # Optional dependencies
 memmap2 = { version = "0.9", optional = true }
@@ -30,6 +36,7 @@ criterion = "0.5"
 
 [features]
 default = []
+cli = ["clap", "comfy-table", "simple_logger"]
 debug = []
 mmap = ["memmap2"]
 async = ["tokio"]
