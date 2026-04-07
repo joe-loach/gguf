@@ -1019,7 +1019,9 @@ mod tests {
     #[test]
     fn test_file_not_found() {
         let result = super::get_gguf_container("nonexistent.gguf");
-        let Err(crate::error::Error::IO(io)) = result else { panic!("expected error finding file"); };
+        let Err(crate::error::Error::IO(io)) = result else {
+            panic!("expected error finding file");
+        };
         assert_eq!(io.kind(), std::io::ErrorKind::NotFound);
     }
 
