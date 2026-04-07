@@ -98,7 +98,7 @@
 
 use anyhow::{anyhow, Result};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
-#[cfg(feature = "debug")]
+#[cfg(feature = "logging")]
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -282,7 +282,7 @@ impl GGUFContainer {
             ByteOrder::BE => self.reader.read_i32::<BigEndian>()?,
         };
 
-        #[cfg(feature = "debug")]
+        #[cfg(feature = "logging")]
         {
             debug!("version {}", version);
         }
@@ -613,7 +613,7 @@ impl GGUFModel {
                 MetadataValueType::Int64 => Value::from(self.read_i64(&mut reader)?),
                 MetadataValueType::Float64 => Value::from(self.read_f64(&mut reader)?),
             };
-            #[cfg(feature = "debug")]
+            #[cfg(feature = "logging")]
             {
                 debug!("kv [{}] vtype {:?} key={}, value={}", _i, value_type, key, value);
             }
