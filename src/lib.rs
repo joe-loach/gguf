@@ -96,7 +96,9 @@
 //! }
 //! ```
 
-use anyhow::{anyhow, Result};
+pub mod error;
+
+use error::{Result, Error};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 #[cfg(feature = "logging")]
 use log::debug;
@@ -320,10 +322,7 @@ impl GGUFContainer {
                 }
             }
             invalid_version => {
-                return Err(anyhow!(
-                    "invalid version {}, only support version: 1 | 2 | 3",
-                    invalid_version
-                ));
+                return Err(Error::InvalidVersion(invalid_version));
             }
         };
 
@@ -421,9 +420,9 @@ pub enum MetadataValueType {
 }
 
 impl TryFrom<u32> for MetadataValueType {
-    type Error = anyhow::Error;
+    type Error = Error;
 
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
+    fn try_from(value: u32) -> Result<Self> {
         Ok(match value {
             0 => MetadataValueType::Uint8,
             1 => MetadataValueType::Int8,
@@ -438,7 +437,7 @@ impl TryFrom<u32> for MetadataValueType {
             10 => MetadataValueType::Uint64,
             11 => MetadataValueType::Int64,
             12 => MetadataValueType::Float64,
-            _ => return Err(anyhow!("unsupport metadata value type")),
+            _ => return Err(Error::InvalidMetaValueType(value)),
         })
     }
 }
@@ -543,9 +542,9 @@ impl Display for GGMLType {
 }
 
 impl TryFrom<u32> for GGMLType {
-    type Error = anyhow::Error;
+    type Error = Error;
 
-    fn try_from(value: u32) -> std::prelude::v1::Result<Self, Self::Error> {
+    fn try_from(value: u32) -> Result<Self> {
         Ok(match value {
             0 => GGMLType::F32,
             1 => GGMLType::F16,
@@ -586,7 +585,7 @@ impl TryFrom<u32> for GGMLType {
             38 => GGMLType::IQ4_NL_8_8,
             39 => GGMLType::MXFP4,
             40 => GGMLType::Count,
-            _ => return Err(anyhow!("invalid GGML type")),
+            _ => return Err(Error::InvalidGGMLType(value)),
         })
     }
 }
@@ -792,7 +791,7 @@ impl GGUFModel {
                 MetadataValueType::Uint64 => Value::from(self.read_u64(&mut reader)?),
                 MetadataValueType::Int64 => Value::from(self.read_i64(&mut reader)?),
                 MetadataValueType::Float64 => Value::from(self.read_f64(&mut reader)?),
-                _ => return Err(anyhow!("Unsupport item value type: Array")),
+                _ => return Err(Error::UnsupportedArrayValue),
             };
             if read_count > 0 && data.len() < read_count {
                 data.push(value);
@@ -957,23 +956,16 @@ pub fn get_gguf_container(file: &str) -> Result<GGUFContainer> {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub fn get_gguf_container_array_size(file: &str, max_array_size: u64) -> Result<GGUFContainer> {
-    if !std::path::Path::new(file).exists() {
-        return Err(anyhow!("file not found"));
-    }
     let mut reader = std::fs::File::open(file)?;
     let byte_le = reader.read_i32::<LittleEndian>()?;
     match byte_le {
-        FILE_MAGIC_GGML => Err(anyhow!("unsupport ggml format")),
-        FILE_MAGIC_GGMF => Err(anyhow!("unsupport ggmf format")),
-        FILE_MAGIC_GGJT => Err(anyhow!("unsupport ggjt format")),
-        FILE_MAGIC_GGLA => Err(anyhow!("unsupport ggla format")),
         FILE_MAGIC_GGUF_LE => {
             Ok(GGUFContainer::new(ByteOrder::LE, Box::new(reader), max_array_size))
         }
         FILE_MAGIC_GGUF_BE => {
             Ok(GGUFContainer::new(ByteOrder::BE, Box::new(reader), max_array_size))
         }
-        _ => Err(anyhow!("invalid file magic")),
+        magic => Err(Error::UnsupportedFileFormat(magic)),
     }
 }
 

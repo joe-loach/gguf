@@ -23,11 +23,11 @@
 //! - Efficient random access to tensor data
 //! - OS-managed memory paging
 
-use anyhow::{anyhow, Result};
 use memmap2::Mmap;
 use std::fs::File;
 use std::path::Path;
 
+use crate::error::{Result, Error};
 use crate::{ByteOrder, GGUFModel, FILE_MAGIC_GGUF_BE, FILE_MAGIC_GGUF_LE};
 
 /// Memory-mapped GGUF file
@@ -65,16 +65,12 @@ impl MmapGGUF {
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
 
-        if !path.exists() {
-            return Err(anyhow!("file not found: {}", path.display()));
-        }
-
         let file = File::open(path)?;
         let mmap = unsafe { Mmap::map(&file)? };
 
         // Check magic number to determine byte order
         if mmap.len() < 4 {
-            return Err(anyhow!("file too small to be a valid GGUF file"));
+            return Err(Error::FileTooSmall);
         }
 
         let magic = i32::from_le_bytes([mmap[0], mmap[1], mmap[2], mmap[3]]);
@@ -82,7 +78,7 @@ impl MmapGGUF {
         let byte_order = match magic {
             FILE_MAGIC_GGUF_LE => ByteOrder::LE,
             FILE_MAGIC_GGUF_BE => ByteOrder::BE,
-            _ => return Err(anyhow!("invalid file magic: not a GGUF file")),
+            _ => return Err(Error::UnsupportedFileFormat(magic)),
         };
 
         // Parse the file by copying data (required due to lifetime constraints)

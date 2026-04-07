@@ -32,7 +32,7 @@
 //! }
 //! ```
 
-use anyhow::{anyhow, Result};
+use crate::error::{Error, Result};
 use byteorder::{LittleEndian, WriteBytesExt};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -101,7 +101,7 @@ impl GGUFWriter {
             1 => GGUF_VERSION_V1,
             2 => GGUF_VERSION_V2,
             3 => GGUF_VERSION_V3,
-            _ => return Err(anyhow!("invalid GGUF version, must be 1, 2, or 3")),
+            _ => return Err(Error::InvalidVersion(version)),
         };
 
         Ok(Self {
@@ -201,7 +201,7 @@ impl GGUFWriter {
     /// * `data` - Raw tensor data bytes
     pub fn write_tensor_data(&mut self, tensor_index: usize, data: &[u8]) -> Result<()> {
         if tensor_index >= self.tensors.len() {
-            return Err(anyhow!("invalid tensor index"));
+            return Err(Error::TensorWriteIndex(tensor_index));
         }
 
         // Calculate offset for this tensor

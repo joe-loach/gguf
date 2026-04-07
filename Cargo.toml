@@ -17,17 +17,17 @@ path = "src/bin/gguf.rs"
 required-features = ["cli"]
 
 [dependencies]
-anyhow = "1.0.101"
 byteorder = "1.5.0"
-log = { version = "0.4.27", optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["arbitrary_precision"] }
 # CLI deps
+anyhow = { version = "1.0.101", optional = true }
 clap = { version = "4.5.58", features = ["derive"], optional = true }
 comfy-table = { version = "7.2.2", optional = true }
 simple_logger = { version = "5.0.1", optional = true }
 
 # Optional dependencies
+log = { version = "0.4.27", optional = true }
 memmap2 = { version = "0.9", optional = true }
 tokio = { version = "1", optional = true, features = ["fs", "io-util"] }
 
@@ -37,7 +37,7 @@ criterion = "0.5"
 [features]
 default = []
 logging = ["log"]
-cli = ["logging", "clap", "comfy-table", "simple_logger"]
+cli = ["logging", "anyhow", "clap", "comfy-table", "simple_logger"]
 mmap = ["memmap2"]
 async = ["tokio"]
 

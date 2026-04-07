@@ -26,10 +26,10 @@
 //! - Compatible with tokio runtime
 //! - Same API as sync version
 
-use anyhow::{anyhow, Result};
 use tokio::fs::File;
-use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio::io::AsyncReadExt;
 
+use crate::error::{Result, Error};
 use crate::{ByteOrder, GGUFModel, FILE_MAGIC_GGUF_BE, FILE_MAGIC_GGUF_LE};
 
 /// Async GGUF file container
@@ -66,10 +66,6 @@ impl AsyncGGUF {
     pub async fn open<P: AsRef<std::path::Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
 
-        if !path.exists() {
-            return Err(anyhow!("file not found: {}", path.display()));
-        }
-
         let mut file = File::open(path).await?;
 
         // Read magic number
@@ -80,7 +76,7 @@ impl AsyncGGUF {
         let byte_order = match magic {
             FILE_MAGIC_GGUF_LE => ByteOrder::LE,
             FILE_MAGIC_GGUF_BE => ByteOrder::BE,
-            _ => return Err(anyhow!("invalid file magic: not a GGUF file")),
+            _ => return Err(Error::UnsupportedFileFormat(magic)),
         };
 
         // Seek back to start (after magic)
