@@ -1019,9 +1019,8 @@ mod tests {
     #[test]
     fn test_file_not_found() {
         let result = super::get_gguf_container("nonexistent.gguf");
-        assert!(result.is_err());
-        let err = result.err().unwrap();
-        assert!(err.to_string().contains("file not found"));
+        let Err(crate::error::Error::IO(io)) = result else { panic!("expected error finding file"); };
+        assert_eq!(io.kind(), std::io::ErrorKind::NotFound);
     }
 
     #[test]
@@ -1275,19 +1274,6 @@ mod tests {
                 super::GGUFContainer::new(super::ByteOrder::LE, Box::new(cursor), u64::MAX);
             let result = container.decode();
             assert!(result.is_err(), "Expected error for invalid magic");
-        }
-    }
-
-    #[test]
-    fn test_file_not_found_message() {
-        let result = super::get_gguf_container("this_file_does_not_exist.gguf");
-        assert!(result.is_err());
-        // Check error message
-        if let Err(err) = result {
-            assert!(
-                err.to_string().contains("file not found"),
-                "Error message should mention 'file not found'"
-            );
         }
     }
 
