@@ -213,14 +213,14 @@ pub struct V3 {
 /// into a [`GGUFModel`].
 ///
 /// Use [`get_gguf_container`] for a convenient way to open a file.
-pub struct GGUFContainer {
+pub struct GGUFContainer<'a> {
     bo: ByteOrder,
     version: Version,
-    reader: Box<dyn std::io::Read + 'static>,
+    reader: Box<dyn std::io::Read + 'a>,
     max_array_size: u64,
 }
 
-impl GGUFContainer {
+impl<'a> GGUFContainer<'a> {
     /// Create a new `GGUFContainer` from a byte order and a reader.
     ///
     /// # Arguments
@@ -239,7 +239,7 @@ impl GGUFContainer {
     /// let container = GGUFContainer::new(ByteOrder::LE, Box::new(file), 1024);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(bo: ByteOrder, reader: Box<dyn std::io::Read>, max_array_size: u64) -> Self {
+    pub fn new(bo: ByteOrder, reader: Box<dyn std::io::Read + 'a>, max_array_size: u64) -> Self {
         Self {
             bo,
             version: Version::V1(V1::default()),
@@ -924,7 +924,7 @@ impl GGUFModel {
 /// let container = get_gguf_container("model.gguf")?;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn get_gguf_container(file: &str) -> Result<GGUFContainer> {
+pub fn get_gguf_container(file: &str) -> Result<GGUFContainer<'_>> {
     get_gguf_container_array_size(file, 3)
 }
 
@@ -955,7 +955,7 @@ pub fn get_gguf_container(file: &str) -> Result<GGUFContainer> {
 /// let container = get_gguf_container_array_size("model.gguf", 100)?;
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-pub fn get_gguf_container_array_size(file: &str, max_array_size: u64) -> Result<GGUFContainer> {
+pub fn get_gguf_container_array_size(file: &str, max_array_size: u64) -> Result<GGUFContainer<'_>> {
     let mut reader = std::fs::File::open(file)?;
     let byte_le = reader.read_i32::<LittleEndian>()?;
     match byte_le {

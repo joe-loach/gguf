@@ -73,7 +73,7 @@ impl MmapGGUF {
             return Err(Error::FileTooSmall);
         }
 
-        let magic = i32::from_le_bytes([mmap[0], mmap[1], mmap[2], mmap[3]]);
+        let magic = i32::from_le_bytes(mmap[0..4].try_into().unwrap());
 
         let byte_order = match magic {
             FILE_MAGIC_GGUF_LE => ByteOrder::LE,
@@ -81,14 +81,14 @@ impl MmapGGUF {
             _ => return Err(Error::UnsupportedFileFormat(magic)),
         };
 
-        // Parse the file by copying data (required due to lifetime constraints)
-        // For true zero-copy, a more complex design would be needed
-        let data = mmap[4..].to_vec();
+        let data = &mmap[4..];
         let cursor = std::io::Cursor::new(data);
 
         // Create container and decode
-        let mut container = crate::GGUFContainer::new(byte_order, Box::new(cursor), u64::MAX);
-        let model = container.decode()?;
+        let model = {
+            let mut container = crate::GGUFContainer::new(byte_order, Box::new(cursor), u64::MAX);
+            container.decode()?
+        };
 
         Ok(Self { mmap, model })
     }
