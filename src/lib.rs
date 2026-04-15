@@ -516,12 +516,50 @@ impl std::fmt::Display for MetadataValue {
     }
 }
 
+#[derive(Debug)]
+pub struct MetadataTypeError {
+    expected: &'static str,
+    found: MetadataValue,
+}
+
+impl std::fmt::Display for MetadataTypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "failed to convert metatype: expected {}, found {}",
+            self.expected, self.found
+        )
+    }
+}
+
+impl core::error::Error for MetadataTypeError {}
+
 macro_rules! impl_from_for_metadata {
     ($($ty:ty => $variant:ident),* $(,)?) => {
         $(
             impl From<$ty> for MetadataValue {
                 fn from(value: $ty) -> Self {
                     MetadataValue::$variant(value)
+                }
+            }
+        )*
+    };
+}
+
+macro_rules! impl_try_from_metadata {
+    ($($ty:ty => $variant:ident),* $(,)?) => {
+        $(
+            impl TryFrom<MetadataValue> for $ty {
+                type Error = MetadataTypeError;
+
+                fn try_from(value: MetadataValue) -> std::result::Result<Self, Self::Error> {
+                    match value {
+                        MetadataValue::$variant(v) => Ok(v),
+                        other => Err(MetadataTypeError {
+                            expected: stringify!($variant),
+                            found: other,
+                        }),
+                    }
                 }
             }
         )*
@@ -548,6 +586,22 @@ impl From<&str> for MetadataValue {
     fn from(value: &str) -> Self {
         MetadataValue::String(value.to_owned())
     }
+}
+
+impl_try_from_metadata! {
+    u8  => Uint8,
+    i8  => Int8,
+    u16 => Uint16,
+    i16 => Int16,
+    u32 => Uint32,
+    i32 => Int32,
+    f32 => Float32,
+    bool => Bool,
+    String => String,
+    Vec<MetadataValue> => Array,
+    u64 => Uint64,
+    i64 => Int64,
+    f64 => Float64,
 }
 
 /// GGML type of a tensor in the GGUF file.
