@@ -113,6 +113,11 @@ impl MmapGGUF {
     pub fn is_empty(&self) -> bool {
         self.mmap.is_empty()
     }
+
+    /// Drops the memory-map and returns ownership of the decoded GGUF model
+    pub fn into_model(self) -> GGUFModel {
+        self.model
+    }
 }
 
 // Implement Deref to allow direct access to GGUFModel methods
