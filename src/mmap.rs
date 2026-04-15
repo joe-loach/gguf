@@ -86,7 +86,8 @@ impl MmapGGUF {
 
         // Create container and decode
         let model = {
-            let mut container = crate::GGUFContainer::new(byte_order, Box::new(cursor), u64::MAX);
+            let mut container = crate::GGUFContainer::new(byte_order, Box::new(cursor))
+                .with_max_array_size(u64::MAX);
             container.decode()?
         };
 

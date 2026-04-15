@@ -219,13 +219,17 @@ pub struct GGUFContainer<'a> {
 }
 
 impl<'a> GGUFContainer<'a> {
+    /// The default max size of arrays when parsing
+    ///
+    /// You can change this by using [`Self::with_max_array_size()`]
+    pub const DEFAULT_MAX_ARRAY_SIZE: u64 = 3;
+
     /// Create a new `GGUFContainer` from a byte order and a reader.
     ///
     /// # Arguments
     ///
     /// * `bo` - Byte order (little-endian or big-endian)
     /// * `reader` - A reader implementing `std::io::Read`
-    /// * `max_array_size` - Maximum size for array metadata values
     ///
     /// # Example
     ///
@@ -234,15 +238,27 @@ impl<'a> GGUFContainer<'a> {
     /// use std::fs::File;
     ///
     /// let file = File::open("model.gguf")?;
-    /// let container = GGUFContainer::new(ByteOrder::LE, Box::new(file), 1024);
+    /// let container = GGUFContainer::new(ByteOrder::LE, Box::new(file));
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
-    pub fn new(bo: ByteOrder, reader: Box<dyn std::io::Read + 'a>, max_array_size: u64) -> Self {
+    pub fn new(bo: ByteOrder, reader: Box<dyn std::io::Read + 'a>) -> Self {
         Self {
             bo,
             version: Version::V1(V1::default()),
             reader,
+            max_array_size: Self::DEFAULT_MAX_ARRAY_SIZE,
+        }
+    }
+
+    /// Set the maximum size for arrays to be read during parsing.
+    ///
+    /// By default this is set to [`Self::DEFAULT_MAX_ARRAY_SIZE`].
+    ///
+    /// Set this to [`u64::MAX`] to remove the limit.
+    pub fn with_max_array_size(self, max_array_size: u64) -> Self {
+        Self {
             max_array_size,
+            ..self
         }
     }
 
@@ -996,15 +1012,12 @@ pub fn get_gguf_container(file: &str) -> Result<GGUFContainer<'_>> {
 pub fn get_gguf_container_array_size(file: &str, max_array_size: u64) -> Result<GGUFContainer<'_>> {
     let mut reader = std::fs::File::open(file)?;
     let byte_le = reader.read_i32::<LittleEndian>()?;
-    match byte_le {
-        FILE_MAGIC_GGUF_LE => {
-            Ok(GGUFContainer::new(ByteOrder::LE, Box::new(reader), max_array_size))
-        }
-        FILE_MAGIC_GGUF_BE => {
-            Ok(GGUFContainer::new(ByteOrder::BE, Box::new(reader), max_array_size))
-        }
-        magic => Err(Error::UnsupportedFileFormat(magic)),
-    }
+    let container = match byte_le {
+        FILE_MAGIC_GGUF_LE => GGUFContainer::new(ByteOrder::LE, Box::new(reader)),
+        FILE_MAGIC_GGUF_BE => GGUFContainer::new(ByteOrder::BE, Box::new(reader)),
+        magic => return Err(Error::UnsupportedFileFormat(magic)),
+    };
+    Ok(container.with_max_array_size(max_array_size))
 }
 
 #[cfg(test)]
@@ -1045,8 +1058,8 @@ mod tests {
         use std::io::Cursor;
         let invalid_data = vec![0x00, 0x00, 0x00, 0x00];
         let cursor = Cursor::new(invalid_data);
-        let mut container =
-            super::GGUFContainer::new(super::ByteOrder::LE, Box::new(cursor), u64::MAX);
+        let mut container = super::GGUFContainer::new(super::ByteOrder::LE, Box::new(cursor))
+            .with_max_array_size(u64::MAX);
         let result = container.decode();
         assert!(result.is_err());
     }
@@ -1244,7 +1257,8 @@ mod tests {
         use std::io::Cursor;
 
         let cursor = Cursor::new(vec![]);
-        let container = GGUFContainer::new(ByteOrder::LE, Box::new(cursor), 100);
+        let container =
+            GGUFContainer::new(ByteOrder::LE, Box::new(cursor)).with_max_array_size(100);
         assert_eq!(container.get_version(), "v1"); // Default version
     }
 
@@ -1287,8 +1301,8 @@ mod tests {
 
         for magic in invalid_magics {
             let cursor = Cursor::new(magic);
-            let mut container =
-                super::GGUFContainer::new(super::ByteOrder::LE, Box::new(cursor), u64::MAX);
+            let mut container = super::GGUFContainer::new(super::ByteOrder::LE, Box::new(cursor))
+                .with_max_array_size(u64::MAX);
             let result = container.decode();
             assert!(result.is_err(), "Expected error for invalid magic");
         }
