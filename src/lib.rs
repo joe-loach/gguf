@@ -1001,7 +1001,7 @@ impl GGUFModel {
     /// Get the key-value metadata of the GGUF file.
     ///
     /// Returns a reference to the metadata map containing all key-value pairs
-    /// from the GGUF file. Values are JSON values for flexibility.
+    /// from the GGUF file.
     ///
     /// Common keys include:
     /// - `general.architecture`: Model architecture (e.g., "llama")
@@ -1017,6 +1017,11 @@ impl GGUFModel {
     /// name, type, offset, size, and shape information.
     pub fn tensors(&self) -> &Vec<Tensor> {
         &self.tensors
+    }
+
+    /// Converts [`GGUFModel`] into its main parts: metadata and tensors.
+    pub fn into_parts(self) -> (BTreeMap<String, MetadataValue>, Vec<Tensor>) {
+        (self.kv, self.tensors)
     }
 }
 
