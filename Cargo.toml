@@ -19,7 +19,6 @@ required-features = ["cli"]
 [dependencies]
 byteorder = "1.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = { version = "1.0.149", features = ["arbitrary_precision"] }
 # CLI deps
 anyhow = { version = "1.0.101", optional = true }
 clap = { version = "4.5.58", features = ["derive"], optional = true }

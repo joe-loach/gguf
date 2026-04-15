@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use comfy_table::Table;
-use gguf_rs::{get_gguf_container, GGMLType, GGUFModel};
+use gguf_rs::{get_gguf_container, GGMLType, GGUFModel, MetadataValue};
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 
@@ -28,33 +28,43 @@ fn print_metadata(model: &GGUFModel) {
     let mut table = Table::new();
     table.set_header(vec!["#", "Key", "Value"]);
 
+    fn value_to_string_recursive(value: &MetadataValue, fuel: usize) -> String {
+        if fuel == 0 {
+            return "...".to_owned();
+        }
+
+        match value {
+            MetadataValue::Bool(v) => v.to_string(),
+            MetadataValue::Uint8(v) => v.to_string(),
+            MetadataValue::Int8(v) => v.to_string(),
+            MetadataValue::Uint16(v) => v.to_string(),
+            MetadataValue::Int16(v) => v.to_string(),
+            MetadataValue::Uint32(v) => v.to_string(),
+            MetadataValue::Int32(v) => v.to_string(),
+            MetadataValue::Uint64(v) => v.to_string(),
+            MetadataValue::Int64(v) => v.to_string(),
+            MetadataValue::Float32(v) => v.to_string(),
+            MetadataValue::Float64(v) => v.to_string(),
+            MetadataValue::String(v) => v.to_owned(),
+            MetadataValue::Array(v) => {
+                let concat_values = v
+                    .iter()
+                    .map(|v| value_to_string_recursive(v, fuel - 1))
+                    .collect::<Vec<String>>()
+                    .join(",");
+                format!("[{}]", concat_values)
+            }
+        }
+    }
+
+    const MAX_RECURSIVE_PRINTS: usize = 4;
+
     model
         .metadata()
         .iter()
         .enumerate()
         .for_each(|(i, (key, value))| {
-            let unwrap_value = match value {
-                serde_json::Value::Null => String::from("null"),
-                serde_json::Value::Bool(v) => v.to_string(),
-                serde_json::Value::Number(v) => v.to_string(),
-                serde_json::Value::String(v) => v.to_owned(),
-                serde_json::Value::Array(v) => {
-                    let concat_values = v
-                        .iter()
-                        .map(|v| match v {
-                            serde_json::Value::Null => String::from("null"),
-                            serde_json::Value::Bool(v) => v.to_string(),
-                            serde_json::Value::Number(v) => v.to_string(),
-                            serde_json::Value::String(v) => v.to_string(),
-                            serde_json::Value::Object(v) => serde_json::to_string(v).unwrap(),
-                            _ => String::from("unsupport array type"),
-                        })
-                        .collect::<Vec<String>>()
-                        .join(",");
-                    format!("[{}]", concat_values)
-                }
-                serde_json::Value::Object(_) => todo!(),
-            };
+            let unwrap_value = value_to_string_recursive(value, MAX_RECURSIVE_PRINTS);
             table.add_row(vec![(i + 1).to_string(), key.clone(), unwrap_value]);
         });
 
