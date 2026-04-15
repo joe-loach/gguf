@@ -111,6 +111,14 @@ impl GGUFWriter {
         add(self, key, value.into());
     }
 
+    /// Appends multiple metadata to the current writer metadata state.
+    ///
+    /// If a key is present in both `meta` and internally,
+    /// the new value will overwrite the value in the internal writer state.
+    pub fn append_metadata(&mut self, meta: &mut BTreeMap<String, MetadataValue>) {
+        self.metadata.append(meta);
+    }
+
     /// Add tensor info
     pub fn add_tensor(&mut self, tensor: TensorInfo) {
         self.tensors.push(tensor);
