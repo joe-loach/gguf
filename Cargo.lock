@@ -343,7 +343,6 @@ dependencies = [
  "criterion",
  "log",
  "memmap2",
- "serde",
  "simple_logger",
  "tokio",
 ]

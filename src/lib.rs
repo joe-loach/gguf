@@ -102,7 +102,6 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use error::{Error, Result};
 #[cfg(feature = "logging")]
 use log::debug;
-use serde::{Deserialize, Serialize};
 use std::{borrow::Borrow, collections::BTreeMap, fmt::Display};
 
 /// Magic constant for `ggml` files (unversioned).
@@ -186,21 +185,21 @@ pub enum Version {
 }
 
 /// Version 1 of the GGUF file.
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct V1 {
     num_tensor: u32,
     num_kv: u32,
 }
 
 /// Version 2 of the GGUF file.
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct V2 {
     num_tensor: u64,
     num_kv: u64,
 }
 
 /// Version 3 of the GGUF file.
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct V3 {
     num_tensor: u64,
     num_kv: u64,
@@ -490,7 +489,7 @@ impl std::fmt::Display for MetadataValue {
 /// Represents the quantization format used for tensor data.
 /// Most types are quantized formats that compress float values
 /// to reduce memory footprint while maintaining accuracy.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 #[allow(non_camel_case_types)]
 pub enum GGMLType {
     F32 = 0,
