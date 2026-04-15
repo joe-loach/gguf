@@ -1011,13 +1011,19 @@ pub fn get_gguf_container(file: &str) -> Result<GGUFContainer<'_>> {
 /// ```
 pub fn get_gguf_container_array_size(file: &str, max_array_size: u64) -> Result<GGUFContainer<'_>> {
     let mut reader = std::fs::File::open(file)?;
+    let order = read_gguf_magic_order(&mut reader)?;
+    let container = GGUFContainer::new(order, Box::new(reader)).with_max_array_size(max_array_size);
+    Ok(container)
+}
+
+/// Reads the magic prefix of the GGUF file to determine the [`ByteOrder`] of the file.
+pub fn read_gguf_magic_order<R: std::io::Read>(reader: &mut R) -> Result<ByteOrder> {
     let byte_le = reader.read_i32::<LittleEndian>()?;
-    let container = match byte_le {
-        FILE_MAGIC_GGUF_LE => GGUFContainer::new(ByteOrder::LE, Box::new(reader)),
-        FILE_MAGIC_GGUF_BE => GGUFContainer::new(ByteOrder::BE, Box::new(reader)),
-        magic => return Err(Error::UnsupportedFileFormat(magic)),
-    };
-    Ok(container.with_max_array_size(max_array_size))
+    match byte_le {
+        FILE_MAGIC_GGUF_LE => Ok(ByteOrder::LE),
+        FILE_MAGIC_GGUF_BE => Ok(ByteOrder::BE),
+        other => Err(Error::UnsupportedFileFormat(other)),
+    }
 }
 
 #[cfg(test)]
