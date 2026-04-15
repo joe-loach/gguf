@@ -516,6 +516,40 @@ impl std::fmt::Display for MetadataValue {
     }
 }
 
+macro_rules! impl_from_for_metadata {
+    ($($ty:ty => $variant:ident),* $(,)?) => {
+        $(
+            impl From<$ty> for MetadataValue {
+                fn from(value: $ty) -> Self {
+                    MetadataValue::$variant(value)
+                }
+            }
+        )*
+    };
+}
+
+impl_from_for_metadata! {
+    u8  => Uint8,
+    i8  => Int8,
+    u16 => Uint16,
+    i16 => Int16,
+    u32 => Uint32,
+    i32 => Int32,
+    f32 => Float32,
+    bool => Bool,
+    String => String,
+    Vec<MetadataValue> => Array,
+    u64 => Uint64,
+    i64 => Int64,
+    f64 => Float64,
+}
+
+impl From<&str> for MetadataValue {
+    fn from(value: &str) -> Self {
+        MetadataValue::String(value.to_owned())
+    }
+}
+
 /// GGML type of a tensor in the GGUF file.
 ///
 /// Represents the quantization format used for tensor data.

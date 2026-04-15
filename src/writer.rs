@@ -102,46 +102,13 @@ impl GGUFWriter {
         self
     }
 
-    /// Add metadata (string value)
-    pub fn add_metadata(&mut self, key: &str, value: &str) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::String(value.to_string()));
-    }
+    /// Add metadata key-value pair
+    pub fn add_metadata<V: Into<MetadataValue>>(&mut self, key: &str, value: V) {
+        fn add(this: &mut GGUFWriter, key: &str, value: MetadataValue) {
+            this.metadata.insert(key.to_owned(), value);
+        }
 
-    /// Add metadata (u32 value)
-    pub fn add_metadata_u32(&mut self, key: &str, value: u32) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::Uint32(value));
-    }
-
-    /// Add metadata (i32 value)
-    pub fn add_metadata_i32(&mut self, key: &str, value: i32) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::Int32(value));
-    }
-
-    /// Add metadata (u64 value)
-    pub fn add_metadata_u64(&mut self, key: &str, value: u64) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::Uint64(value));
-    }
-
-    /// Add metadata (f32 value)
-    pub fn add_metadata_f32(&mut self, key: &str, value: f32) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::Float32(value));
-    }
-
-    /// Add metadata (bool value)
-    pub fn add_metadata_bool(&mut self, key: &str, value: bool) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::Bool(value));
-    }
-
-    /// Add metadata (array value)
-    pub fn add_metadata_array(&mut self, key: &str, value: Vec<MetadataValue>) {
-        self.metadata
-            .insert(key.to_string(), MetadataValue::Array(value));
+        add(self, key, value.into());
     }
 
     /// Add tensor info
@@ -369,8 +336,8 @@ mod tests {
     fn test_write_metadata() {
         let mut writer = GGUFWriter::new("/tmp/test_metadata.gguf", 3).unwrap();
         writer.add_metadata("general.architecture", "llama");
-        writer.add_metadata_u32("llama.block_count", 12);
-        writer.add_metadata_f32("test.value", 3.14);
+        writer.add_metadata("llama.block_count", 12);
+        writer.add_metadata("test.value", 3.14);
 
         let result = writer.write();
         assert!(result.is_ok());
