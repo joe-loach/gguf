@@ -209,71 +209,62 @@ impl GGUFWriter {
             // Write key
             self.write_string(&key)?;
             // Write value type and value
-            self.write_metadata_value(&value)?;
+            self.write_metadata_value(&value, true)?;
         }
         Ok(())
     }
 
-    fn write_metadata_value(&mut self, value: &MetadataValue) -> Result<()> {
+    fn write_metadata_value(&mut self, value: &MetadataValue, should_tag: bool) -> Result<()> {
+        const fn meta_tag(value: &MetadataValue) -> u32 {
+            match value {
+                MetadataValue::Uint8(_) => 0,
+                MetadataValue::Int8(_) => 1,
+                MetadataValue::Uint16(_) => 2,
+                MetadataValue::Int16(_) => 3,
+                MetadataValue::Uint32(_) => 4,
+                MetadataValue::Int32(_) => 5,
+                MetadataValue::Float32(_) => 6,
+                MetadataValue::Bool(_) => 7,
+                MetadataValue::String(_) => 8,
+                MetadataValue::Array(_) => 9,
+                MetadataValue::Uint64(_) => 10,
+                MetadataValue::Int64(_) => 11,
+                MetadataValue::Float64(_) => 12,
+            }
+        }
+
+        if should_tag {
+            let tag = meta_tag(value);
+            self.writer.write_u32::<LittleEndian>(tag)?;
+        }
+
         match value {
-            MetadataValue::Uint8(v) => {
-                self.writer.write_u32::<LittleEndian>(0)?; // type
-                self.writer.write_u8(*v)?;
-            }
-            MetadataValue::Int8(v) => {
-                self.writer.write_u32::<LittleEndian>(1)?;
-                self.writer.write_i8(*v)?;
-            }
-            MetadataValue::Uint16(v) => {
-                self.writer.write_u32::<LittleEndian>(2)?;
-                self.writer.write_u16::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Int16(v) => {
-                self.writer.write_u32::<LittleEndian>(3)?;
-                self.writer.write_i16::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Uint32(v) => {
-                self.writer.write_u32::<LittleEndian>(4)?;
-                self.writer.write_u32::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Int32(v) => {
-                self.writer.write_u32::<LittleEndian>(5)?;
-                self.writer.write_i32::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Float32(v) => {
-                self.writer.write_u32::<LittleEndian>(6)?;
-                self.writer.write_f32::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Bool(v) => {
-                self.writer.write_u32::<LittleEndian>(7)?;
-                self.writer.write_u8(if *v { 1 } else { 0 })?;
-            }
-            MetadataValue::String(v) => {
-                self.writer.write_u32::<LittleEndian>(8)?;
-                self.write_string(v)?;
-            }
+            MetadataValue::Uint8(v) => self.writer.write_u8(*v)?,
+            MetadataValue::Int8(v) => self.writer.write_i8(*v)?,
+            MetadataValue::Uint16(v) => self.writer.write_u16::<LittleEndian>(*v)?,
+            MetadataValue::Int16(v) => self.writer.write_i16::<LittleEndian>(*v)?,
+            MetadataValue::Uint32(v) => self.writer.write_u32::<LittleEndian>(*v)?,
+            MetadataValue::Int32(v) => self.writer.write_i32::<LittleEndian>(*v)?,
+            MetadataValue::Float32(v) => self.writer.write_f32::<LittleEndian>(*v)?,
+            MetadataValue::Bool(v) => self.writer.write_u8(if *v { 1 } else { 0 })?,
+            MetadataValue::String(v) => self.write_string(v)?,
             MetadataValue::Array(arr) => {
-                self.writer.write_u32::<LittleEndian>(9)?;
+                // All elements should be the same type
+                // => they have the same tag
+                // NOTE: default to u8 here if theres no items in the array
+                let inner_tag = arr.first().map(meta_tag).unwrap_or(0);
+                self.writer.write_u32::<LittleEndian>(inner_tag)?;
                 self.write_size(arr.len() as u64)?;
-                // All elements must be same type
                 if !arr.is_empty() {
                     for elem in arr {
-                        self.write_metadata_value(elem)?;
+                        // dont write a tag for inner elems
+                        self.write_metadata_value(elem, false)?;
                     }
                 }
             }
-            MetadataValue::Uint64(v) => {
-                self.writer.write_u32::<LittleEndian>(10)?;
-                self.writer.write_u64::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Int64(v) => {
-                self.writer.write_u32::<LittleEndian>(11)?;
-                self.writer.write_i64::<LittleEndian>(*v)?;
-            }
-            MetadataValue::Float64(v) => {
-                self.writer.write_u32::<LittleEndian>(12)?;
-                self.writer.write_f64::<LittleEndian>(*v)?;
-            }
+            MetadataValue::Uint64(v) => self.writer.write_u64::<LittleEndian>(*v)?,
+            MetadataValue::Int64(v) => self.writer.write_i64::<LittleEndian>(*v)?,
+            MetadataValue::Float64(v) => self.writer.write_f64::<LittleEndian>(*v)?,
         }
         Ok(())
     }
