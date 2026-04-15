@@ -344,7 +344,6 @@ dependencies = [
  "log",
  "memmap2",
  "serde",
- "serde_json",
  "simple_logger",
  "tokio",
 ]

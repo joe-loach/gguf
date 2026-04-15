@@ -39,25 +39,7 @@ use std::fs::File;
 use std::io::{BufWriter, Seek, SeekFrom, Write};
 use std::path::Path;
 
-use crate::{FILE_MAGIC_GGUF_LE, GGUF_VERSION_V1, GGUF_VERSION_V2, GGUF_VERSION_V3};
-
-/// Metadata value types for writing
-#[derive(Debug, Clone)]
-pub enum MetadataValue {
-    Uint8(u8),
-    Int8(i8),
-    Uint16(u16),
-    Int16(i16),
-    Uint32(u32),
-    Int32(i32),
-    Float32(f32),
-    Bool(bool),
-    String(String),
-    Array(Vec<MetadataValue>),
-    Uint64(u64),
-    Int64(i64),
-    Float64(f64),
-}
+use crate::{MetadataValue, FILE_MAGIC_GGUF_LE, GGUF_VERSION_V1, GGUF_VERSION_V2, GGUF_VERSION_V3};
 
 /// Tensor information for writing
 #[derive(Debug, Clone)]

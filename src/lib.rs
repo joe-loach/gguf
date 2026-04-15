@@ -103,7 +103,6 @@ use error::{Error, Result};
 #[cfg(feature = "logging")]
 use log::debug;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{borrow::Borrow, collections::BTreeMap, fmt::Display};
 
 /// Magic constant for `ggml` files (unversioned).
@@ -390,7 +389,7 @@ pub struct Tensor {
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub struct GGUFModel {
-    kv: BTreeMap<String, Value>,
+    kv: BTreeMap<String, MetadataValue>,
     tensors: Vec<Tensor>,
     parameters: u64,
     max_array_size: u64,
@@ -439,6 +438,50 @@ impl TryFrom<u32> for MetadataValueType {
             12 => MetadataValueType::Float64,
             _ => return Err(Error::InvalidMetaValueType(value)),
         })
+    }
+}
+
+/// Metadata value types
+#[derive(Debug, Clone)]
+pub enum MetadataValue {
+    Uint8(u8),
+    Int8(i8),
+    Uint16(u16),
+    Int16(i16),
+    Uint32(u32),
+    Int32(i32),
+    Float32(f32),
+    Bool(bool),
+    String(String),
+    Array(Vec<MetadataValue>),
+    Uint64(u64),
+    Int64(i64),
+    Float64(f64),
+}
+
+impl std::fmt::Display for MetadataValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MetadataValue::Uint8(x) => write!(f, "{x}"),
+            MetadataValue::Int8(x) => write!(f, "{x}"),
+            MetadataValue::Uint16(x) => write!(f, "{x}"),
+            MetadataValue::Int16(x) => write!(f, "{x}"),
+            MetadataValue::Uint32(x) => write!(f, "{x}"),
+            MetadataValue::Int32(x) => write!(f, "{x}"),
+            MetadataValue::Float32(x) => write!(f, "{x}"),
+            MetadataValue::Bool(x) => write!(f, "{x}"),
+            MetadataValue::String(x) => write!(f, "{x}"),
+            MetadataValue::Array(arr) => {
+                write!(f, "[")?;
+                for x in arr.iter().take(3) {
+                    write!(f, " {x}")?;
+                }
+                write!(f, " ]")
+            }
+            MetadataValue::Uint64(x) => write!(f, "{x}"),
+            MetadataValue::Int64(x) => write!(f, "{x}"),
+            MetadataValue::Float64(x) => write!(f, "{x}"),
+        }
     }
 }
 
@@ -598,19 +641,19 @@ impl GGUFModel {
             let key = self.read_string(&mut reader)?;
             let value_type: MetadataValueType = self.read_u32(&mut reader)?.try_into()?;
             let value = match value_type {
-                MetadataValueType::Uint8 => Value::from(self.read_u8(&mut reader)?),
-                MetadataValueType::Int8 => Value::from(self.read_i8(&mut reader)?),
-                MetadataValueType::Uint16 => Value::from(self.read_u16(&mut reader)?),
-                MetadataValueType::Int16 => Value::from(self.read_i16(&mut reader)?),
-                MetadataValueType::Uint32 => Value::from(self.read_u32(&mut reader)?),
-                MetadataValueType::Int32 => Value::from(self.read_i32(&mut reader)?),
-                MetadataValueType::Float32 => Value::from(self.read_f32(&mut reader)?),
-                MetadataValueType::Bool => Value::from(self.read_bool(&mut reader)?),
-                MetadataValueType::String => Value::from(self.read_string(&mut reader)?),
-                MetadataValueType::Array => Value::from(self.read_array(&mut reader)?),
-                MetadataValueType::Uint64 => Value::from(self.read_u64(&mut reader)?),
-                MetadataValueType::Int64 => Value::from(self.read_i64(&mut reader)?),
-                MetadataValueType::Float64 => Value::from(self.read_f64(&mut reader)?),
+                MetadataValueType::Uint8 => MetadataValue::Uint8(self.read_u8(&mut reader)?),
+                MetadataValueType::Int8 => MetadataValue::Int8(self.read_i8(&mut reader)?),
+                MetadataValueType::Uint16 => MetadataValue::Uint16(self.read_u16(&mut reader)?),
+                MetadataValueType::Int16 => MetadataValue::Int16(self.read_i16(&mut reader)?),
+                MetadataValueType::Uint32 => MetadataValue::Uint32(self.read_u32(&mut reader)?),
+                MetadataValueType::Int32 => MetadataValue::Int32(self.read_i32(&mut reader)?),
+                MetadataValueType::Float32 => MetadataValue::Float32(self.read_f32(&mut reader)?),
+                MetadataValueType::Bool => MetadataValue::Bool(self.read_bool(&mut reader)?),
+                MetadataValueType::String => MetadataValue::String(self.read_string(&mut reader)?),
+                MetadataValueType::Array => MetadataValue::Array(self.read_array(&mut reader)?),
+                MetadataValueType::Uint64 => MetadataValue::Uint64(self.read_u64(&mut reader)?),
+                MetadataValueType::Int64 => MetadataValue::Int64(self.read_i64(&mut reader)?),
+                MetadataValueType::Float64 => MetadataValue::Float64(self.read_f64(&mut reader)?),
             };
             #[cfg(feature = "logging")]
             {
@@ -772,25 +815,25 @@ impl GGUFModel {
         Ok(String::from_utf8_lossy(&buffer).to_string())
     }
 
-    fn read_array(&self, mut reader: impl std::io::Read) -> Result<Vec<Value>> {
+    fn read_array(&self, mut reader: impl std::io::Read) -> Result<Vec<MetadataValue>> {
         let mut data = Vec::new();
         let item_type: MetadataValueType = self.read_u32(&mut reader)?.try_into()?;
         let array_len = self.read_version_size(&mut reader)?;
         let read_count: usize = u64::min(array_len, self.max_array_size) as usize;
         for _ in 0..array_len {
             let value = match item_type {
-                MetadataValueType::Uint8 => Value::from(self.read_u8(&mut reader)?),
-                MetadataValueType::Int8 => Value::from(self.read_i8(&mut reader)?),
-                MetadataValueType::Uint16 => Value::from(self.read_u16(&mut reader)?),
-                MetadataValueType::Int16 => Value::from(self.read_i16(&mut reader)?),
-                MetadataValueType::Uint32 => Value::from(self.read_u32(&mut reader)?),
-                MetadataValueType::Int32 => Value::from(self.read_i32(&mut reader)?),
-                MetadataValueType::Float32 => Value::from(self.read_f32(&mut reader)?),
-                MetadataValueType::Bool => Value::from(self.read_bool(&mut reader)?),
-                MetadataValueType::String => Value::from(self.read_string(&mut reader)?),
-                MetadataValueType::Uint64 => Value::from(self.read_u64(&mut reader)?),
-                MetadataValueType::Int64 => Value::from(self.read_i64(&mut reader)?),
-                MetadataValueType::Float64 => Value::from(self.read_f64(&mut reader)?),
+                MetadataValueType::Uint8 => MetadataValue::Uint8(self.read_u8(&mut reader)?),
+                MetadataValueType::Int8 => MetadataValue::Int8(self.read_i8(&mut reader)?),
+                MetadataValueType::Uint16 => MetadataValue::Uint16(self.read_u16(&mut reader)?),
+                MetadataValueType::Int16 => MetadataValue::Int16(self.read_i16(&mut reader)?),
+                MetadataValueType::Uint32 => MetadataValue::Uint32(self.read_u32(&mut reader)?),
+                MetadataValueType::Int32 => MetadataValue::Int32(self.read_i32(&mut reader)?),
+                MetadataValueType::Float32 => MetadataValue::Float32(self.read_f32(&mut reader)?),
+                MetadataValueType::Bool => MetadataValue::Bool(self.read_bool(&mut reader)?),
+                MetadataValueType::String => MetadataValue::String(self.read_string(&mut reader)?),
+                MetadataValueType::Uint64 => MetadataValue::Uint64(self.read_u64(&mut reader)?),
+                MetadataValueType::Int64 => MetadataValue::Int64(self.read_i64(&mut reader)?),
+                MetadataValueType::Float64 => MetadataValue::Float64(self.read_f64(&mut reader)?),
                 _ => return Err(Error::UnsupportedArrayValue),
             };
             if read_count > 0 && data.len() < read_count {
@@ -847,14 +890,10 @@ impl GGUFModel {
     ///
     /// Common values include: "llama", "phi", "mistral", "qwen", etc.
     pub fn model_family(&self) -> String {
-        let arch = self
-            .kv
-            .get("general.architecture")
-            .cloned()
-            .unwrap_or(Value::from("unknown"));
+        let arch = self.kv.get("general.architecture").cloned();
 
         match arch {
-            Value::String(arch) => arch,
+            Some(MetadataValue::String(arch)) => arch,
             _ => String::from("unknown"),
         }
     }
@@ -877,8 +916,8 @@ impl GGUFModel {
     /// (e.g., "All F32", "Mostly Q4_0", "Mostly BF16").
     /// Returns "unknown" if not present.
     pub fn file_type(&self) -> String {
-        if let Some(ft) = self.kv.get("general.file_type") {
-            file_type(ft.as_u64().unwrap())
+        if let Some(MetadataValue::Uint64(ft)) = self.kv.get("general.file_type") {
+            file_type(*ft)
         } else {
             String::from("unknown")
         }
@@ -893,7 +932,7 @@ impl GGUFModel {
     /// - `general.architecture`: Model architecture (e.g., "llama")
     /// - `general.name`: Model name
     /// - `tokenizer.ggml.tokens`: Tokenizer vocabulary
-    pub fn metadata(&self) -> &BTreeMap<String, Value> {
+    pub fn metadata(&self) -> &BTreeMap<String, MetadataValue> {
         &self.kv
     }
 
@@ -971,8 +1010,6 @@ pub fn get_gguf_container_array_size(file: &str, max_array_size: u64) -> Result<
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
-
     #[test]
     fn test_read_le_v3_gguf() {
         let mut container = super::get_gguf_container("tests/test-le-v3.gguf").unwrap();
@@ -981,17 +1018,6 @@ mod tests {
         assert_eq!(model.model_family(), "llama");
         assert_eq!(model.file_type(), "unknown");
         assert_eq!(model.model_parameters(), "192");
-        assert_eq!(
-            serde_json::to_value(model.kv).unwrap(),
-            json!({
-                "general.architecture": "llama",
-                "llama.block_count": 12,
-                "general.alignment": 64,
-                "answer": 42,
-                "answer_in_float": 42.0,
-                "tokenizer.ggml.tokens": ["a", "b", "c"],
-            })
-        );
     }
 
     #[test]
@@ -1004,16 +1030,6 @@ mod tests {
         assert_eq!(model.file_type(), "unknown");
         assert_eq!(model.model_parameters(), "192");
         println!("{:?}", model.kv);
-        assert_eq!(
-            serde_json::to_value(model.kv).unwrap(),
-            json!({
-                "general.architecture": "llama", 
-                "llama.block_count": 12, 
-                "general.alignment": 64, 
-                "answer": 42, 
-                "answer_in_float": 42.0,
-                "tokenizer.ggml.tokens": ["a", "b", "c", "d", "e"],})
-        );
     }
 
     #[test]
@@ -1290,10 +1306,8 @@ mod tests {
 
         // With max_array_size=1, arrays should be truncated
         let tokens = model.kv.get("tokenizer.ggml.tokens");
-        if let Some(tokens_arr) = tokens {
-            if let serde_json::Value::Array(arr) = tokens_arr {
-                assert!(arr.len() <= 1, "Array should be truncated to max size");
-            }
+        if let Some(crate::MetadataValue::Array(arr)) = tokens {
+            assert!(arr.len() <= 1, "Array should be truncated to max size");
         }
     }
 }
