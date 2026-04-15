@@ -149,20 +149,36 @@ fn file_type(ft: u64) -> String {
         8 => "Mostly Q5_0",
         9 => "Mostly Q5_1",
         10 => "Mostly Q2_K",
-        11 => "Mostly Q3_K",
-        12 => "Mostly Q4_K",
-        13 => "Mostly Q5_K",
-        14 => "Mostly Q6_K",
-        15 => "Mostly IQ2_XXS",
-        16 => "Mostly IQ2_XS",
-        17 => "Mostly IQ3_XXS",
-        18 => "Mostly IQ1_S",
-        19 => "Mostly IQ4_NL",
-        20 => "Mostly IQ3_S",
-        21 => "Mostly IQ2_S",
-        22 => "Mostly IQ4_XS",
-        23 => "Mostly IQ1_M",
-        24 => "Mostly BF16",
+        11 => "Mostly Q3_K_S",
+        12 => "Mostly Q3_K_M",
+        13 => "Mostly Q3_K_L",
+        14 => "Mostly Q4_K_S",
+        15 => "Mostly Q4_K_M",
+        16 => "Mostly Q5_K_S",
+        17 => "Mostly Q5_K_M",
+        18 => "Mostly Q6_K",
+        19 => "Mostly IQ2_XXS",
+        20 => "Mostly IQ2_XS",
+        21 => "Mostly Q2_K_S",
+        22 => "Mostly IQ3_XS",
+        23 => "Mostly IQ3_XXS",
+        24 => "Mostly IQ1_S",
+        25 => "Mostly IQ4_NL",
+        26 => "Mostly IQ3_S",
+        27 => "Mostly IQ3_M",
+        28 => "Mostly IQ2_S",
+        29 => "Mostly IQ2_M",
+        30 => "Mostly IQ4_XS",
+        31 => "Mostly IQ1_M",
+        32 => "Mostly BF16",
+        33 => "Mostly Q4_0_4_4 (UNSUPPORTED)",
+        34 => "Mostly Q4_0_4_8 (UNSUPPORTED)",
+        35 => "Mostly Q4_0_8_8 (UNSUPPORTED)",
+        36 => "Mostly TQ1_0",
+        37 => "Mostly TQ2_0",
+        38 => "Mostly MXFP4_MOE",
+        39 => "Mostly NVFP4",
+        40 => "Mostly Q1_0",
         _ => "unknown",
     }
     .to_string()
@@ -548,7 +564,9 @@ pub enum GGMLType {
     IQ4_NL_4_8 = 37, // Unsupported
     IQ4_NL_8_8 = 38, // Unsupported
     MXFP4 = 39,
-    Count = 40,
+    NVFP4 = 40,
+    Q1_0  = 41,
+    Count = 42,
 }
 
 impl Display for GGMLType {
@@ -594,6 +612,8 @@ impl Display for GGMLType {
             GGMLType::IQ4_NL_4_8 => write!(f, "IQ4_NL_4_8 (UNSUPPORTED)"),
             GGMLType::IQ4_NL_8_8 => write!(f, "IQ4_NL_8_8 (UNSUPPORTED)"),
             GGMLType::MXFP4 => write!(f, "MXFP4"),
+            GGMLType::NVFP4 => write!(f, "NVFP4"),
+            GGMLType::Q1_0 => write!(f, "Q1_0"),
             GGMLType::Count => write!(f, "Count"),
         }
     }
@@ -642,7 +662,9 @@ impl TryFrom<u32> for GGMLType {
             37 => GGMLType::IQ4_NL_4_8,
             38 => GGMLType::IQ4_NL_8_8,
             39 => GGMLType::MXFP4,
-            40 => GGMLType::Count,
+            40 => GGMLType::NVFP4,
+            41 => GGMLType::Q1_0,
+            42 => GGMLType::Count,
             _ => return Err(Error::InvalidGGMLType(value)),
         })
     }
@@ -691,6 +713,8 @@ impl GGUFModel {
             let block_size = match kind {
                 _ if kind < 2 => 1,
                 _ if kind < 10 => 32,
+                _ if kind == 40 => 64,
+                _ if kind == 41 => 128,
                 _ => 256,
             };
             let ggml_type_kind: GGMLType = kind.try_into()?;
@@ -735,6 +759,8 @@ impl GGUFModel {
                 GGMLType::Q4_0_4_8 => 0,
                 GGMLType::Q4_0_8_8 => 0,
                 GGMLType::MXFP4 => block_size + 1 + 16,
+                GGMLType::NVFP4 => block_size / 16 + block_size/2,
+                GGMLType::Q1_0 => 2 + block_size / 128,
                 GGMLType::Count => unreachable!("GGMLType::Count is not a real data format"),
             };
 
