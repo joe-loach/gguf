@@ -565,7 +565,7 @@ pub enum GGMLType {
     IQ4_NL_8_8 = 38, // Unsupported
     MXFP4 = 39,
     NVFP4 = 40,
-    Q1_0  = 41,
+    Q1_0 = 41,
     Count = 42,
 }
 
@@ -759,7 +759,7 @@ impl GGUFModel {
                 GGMLType::Q4_0_4_8 => 0,
                 GGMLType::Q4_0_8_8 => 0,
                 GGMLType::MXFP4 => block_size + 1 + 16,
-                GGMLType::NVFP4 => block_size / 16 + block_size/2,
+                GGMLType::NVFP4 => block_size / 16 + block_size / 2,
                 GGMLType::Q1_0 => 2 + block_size / 128,
                 GGMLType::Count => unreachable!("GGMLType::Count is not a real data format"),
             };
