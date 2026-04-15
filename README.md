@@ -239,7 +239,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Add tensor info
     let tensor = TensorInfo {
         name: "token_embd.weight".to_string(),
-        shape: vec![4096, 32000],
+        shape: [4096, 32000, 1, 1],
         dtype: 0, // F32
     };
     writer.add_tensor(tensor);

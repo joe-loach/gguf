@@ -17,7 +17,7 @@
 //!     // Add tensor info
 //!     let tensor = TensorInfo {
 //!         name: "token_embd.weight".to_string(),
-//!         shape: vec![4096, 32000],
+//!         shape: [4096, 32000, 1, 1],
 //!         dtype: 0, // F32
 //!     };
 //!     writer.add_tensor(tensor);
@@ -47,7 +47,7 @@ pub struct TensorInfo {
     /// Name of the tensor
     pub name: String,
     /// Shape dimensions
-    pub shape: Vec<u64>,
+    pub shape: [u64; 4],
     /// Data type (GGML type)
     pub dtype: u32,
 }
@@ -358,7 +358,6 @@ impl GGUFWriter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Read;
 
     #[test]
     fn test_writer_create() {
@@ -384,7 +383,7 @@ mod tests {
 
         let tensor = TensorInfo {
             name: "test.weight".to_string(),
-            shape: vec![10, 20],
+            shape: [10, 20, 1, 1],
             dtype: 0, // F32
         };
         writer.add_tensor(tensor);

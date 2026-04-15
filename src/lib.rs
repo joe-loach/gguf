@@ -398,7 +398,7 @@ pub struct Tensor {
     /// Size of tensor data in bytes
     pub size: u64,
     /// Shape dimensions (number of elements in each dimension)
-    pub shape: Vec<u64>,
+    pub shape: [u64; 4],
 }
 
 /// Decoded GGUF model containing metadata and tensors.
@@ -703,7 +703,7 @@ impl GGUFModel {
         for _ in 0..self.num_tensor() {
             let name = self.read_string(&mut reader)?;
             let dims = self.read_u32(&mut reader)?;
-            let mut shape = [1; 4];
+            let mut shape = [1_u64; 4];
             for i in 0..dims {
                 shape[i as usize] = self.read_u64(&mut reader)?;
             }
@@ -772,7 +772,7 @@ impl GGUFModel {
                 kind,
                 offset,
                 size,
-                shape: shape.to_vec(),
+                shape,
             });
 
             self.parameters += parameters;
