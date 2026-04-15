@@ -34,10 +34,10 @@ criterion = "0.5"
 
 [features]
 default = []
-logging = ["log"]
-cli = ["logging", "anyhow", "clap", "comfy-table", "simple_logger"]
-mmap = ["memmap2"]
-async = ["tokio"]
+logging = ["dep:log"]
+cli = ["logging", "dep:anyhow", "dep:clap", "dep:comfy-table", "dep:simple_logger"]
+mmap = ["dep:memmap2"]
+async = ["dep:tokio"]
 
 [[bench]]
 name = "parse"
