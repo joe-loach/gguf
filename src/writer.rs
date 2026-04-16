@@ -336,7 +336,7 @@ mod tests {
         let mut writer = GGUFWriter::new("/tmp/test_metadata.gguf", 3).unwrap();
         writer.add_metadata("general.architecture", "llama");
         writer.add_metadata("llama.block_count", 12);
-        writer.add_metadata("test.value", 3.14);
+        writer.add_metadata("test.value", 6.7);
 
         let result = writer.write();
         assert!(result.is_ok());
