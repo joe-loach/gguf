@@ -547,16 +547,23 @@ macro_rules! impl_from_for_metadata {
 }
 
 macro_rules! impl_try_from_metadata {
-    ($($ty:ty => $variant:ident => $extract:expr),* $(,)?) => {
+    (
+        $(
+            $ty:ty => { $($variant:ident)|+ } => $extract:expr
+        ),* $(,)?
+    ) => {
         $(
             impl TryFrom<MetadataValue> for $ty {
                 type Error = MetadataTypeError;
 
                 fn try_from(value: MetadataValue) -> ::core::result::Result<Self, Self::Error> {
+                    #[allow(clippy::unnecessary_cast)]
                     match value {
-                        MetadataValue::$variant(v) => Ok(v),
+                        $(
+                            MetadataValue::$variant(v) => Ok($extract(v)),
+                        )+
                         other => Err(MetadataTypeError {
-                            expected: stringify!($variant),
+                            expected: stringify!($($variant)|+),
                             found: other,
                         }),
                     }
@@ -567,10 +574,13 @@ macro_rules! impl_try_from_metadata {
                 type Error = MetadataTypeError;
 
                 fn try_from(value: &'a MetadataValue) -> ::core::result::Result<Self, Self::Error> {
+                    #[allow(clippy::unnecessary_cast)]
                     match value {
-                        MetadataValue::$variant(v) => Ok($extract(v.clone())),
+                        $(
+                            MetadataValue::$variant(v) => Ok($extract(v.clone())),
+                        )+
                         other => Err(MetadataTypeError {
-                            expected: stringify!($variant),
+                            expected: stringify!($($variant)|+),
                             found: other.clone(),
                         }),
                     }
@@ -603,21 +613,21 @@ impl From<&str> for MetadataValue {
 }
 
 impl_try_from_metadata! {
-    u8  => Uint8  => |v| v,
-    i8  => Int8   => |v| v,
-    u16 => Uint16 => |v| v,
-    i16 => Int16  => |v| v,
-    u32 => Uint32 => |v| v,
-    i32 => Int32  => |v| v,
-    f32 => Float32 => |v| v,
-    bool => Bool => |v| v,
-    u64 => Uint64 => |v| v,
-    i64 => Int64 => |v| v,
-    f64 => Float64 => |v| v,
+    u8  => { Uint8 } => |v| v,
+    i8  => { Int8 }  => |v| v,
+    u16 => { Uint16 | Uint8 } => |v| v as u16,
+    i16 => { Int16 | Int8 }  => |v| v as i16,
+    u32 => { Uint32 | Uint16 | Uint8 } => |v| v as u32,
+    i32 => { Int32 | Int16 | Int8 }  => |v| v as i32,
+    f32 => { Float32 } => |v| v,
+    bool => { Bool } => |v| v,
+    u64 => { Uint64 | Uint32 | Uint16 | Uint8 } => |v| v as u64,
+    i64 => { Int64 | Int32 | Int16 | Int8 } => |v| v as i64,
+    f64 => { Float64 | Float32 } => |v| v as f64,
 
     // owned types need cloning
-    String => String => |v: String| v,
-    Vec<MetadataValue> => Array => |v: Vec<MetadataValue>| v,
+    String => { String } => |v: String| v,
+    Vec<MetadataValue> => { Array } => |v: Vec<MetadataValue>| v,
 }
 
 /// GGML type of a tensor in the GGUF file.
