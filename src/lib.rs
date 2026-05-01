@@ -635,7 +635,7 @@ impl_try_from_metadata! {
 /// Represents the quantization format used for tensor data.
 /// Most types are quantized formats that compress float values
 /// to reduce memory footprint while maintaining accuracy.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum GGMLType {
     F32 = 0,
