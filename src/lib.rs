@@ -784,6 +784,68 @@ impl TryFrom<u32> for GGMLType {
     }
 }
 
+impl GGMLType {
+    pub const fn block_size(&self) -> u32 {
+        let kind = *self as u32;
+        match kind {
+            _ if kind < 2 => 1,
+            _ if kind < 10 => 32,
+            _ if kind == 40 => 64,
+            _ if kind == 41 => 128,
+            _ => 256,
+        }
+    }
+
+    pub const fn size_bytes(&self) -> u32 {
+        let block_size = self.block_size();
+        match self {
+            GGMLType::F32 => 4,
+            GGMLType::F16 => 2,
+            GGMLType::Q4_0 => 2 + block_size / 2,
+            GGMLType::Q4_1 => 2 + 2 + block_size / 2,
+            GGMLType::Q4_2 => 0,
+            GGMLType::Q4_3 => 0,
+            GGMLType::Q5_0 => 2 + 4 + block_size / 2,
+            GGMLType::Q5_1 => 2 + 2 + 4 + block_size / 2,
+            GGMLType::Q8_0 => 2 + block_size,
+            GGMLType::Q8_1 => 4 + 4 + block_size,
+            GGMLType::Q2_K => block_size / 16 + block_size / 4 + 2 + 2,
+            GGMLType::Q3_K => block_size / 8 + block_size / 4 + 12 + 2,
+            GGMLType::Q4_K => 2 + 2 + 12 + block_size / 2,
+            GGMLType::Q5_K => 2 + 2 + 12 + block_size / 8 + block_size / 2,
+            GGMLType::Q6_K => block_size / 2 + block_size / 4 + block_size / 16 + 2,
+            GGMLType::Q8_K => 4 + block_size + block_size / 16 * 2,
+            GGMLType::IQ2_XXS => 2 + block_size / 8 * 2,
+            GGMLType::IQ2_XS => 2 + block_size / 8 * 2 + block_size / 32,
+            GGMLType::IQ3_XXS => 2 + 3 * (block_size / 8),
+            GGMLType::IQ1_S => 2 + block_size / 8 + block_size / 16,
+            GGMLType::IQ4_NL => 2 + 16,
+            GGMLType::IQ3_S => 2 + 13 * (block_size / 32) + block_size / 64,
+            GGMLType::IQ2_S => 2 + block_size / 4 + block_size / 16,
+            GGMLType::IQ4_XS => 2 + 2 + block_size / 64 + block_size / 2,
+            GGMLType::I8 => 1,
+            GGMLType::I16 => 2,
+            GGMLType::I32 => 4,
+            GGMLType::I64 => 8,
+            GGMLType::F64 => 8,
+            GGMLType::IQ1_M => block_size / 8 + block_size / 16 + block_size / 32,
+            GGMLType::BF16 => 2,
+            GGMLType::IQ4_NL_4_4 => 0,
+            GGMLType::IQ4_NL_4_8 => 0,
+            GGMLType::IQ4_NL_8_8 => 0,
+            GGMLType::TQ1_0 => 2 + block_size / 64 + (block_size - 4 * block_size / 64) / 5,
+            GGMLType::TQ2_0 => 2 + block_size / 4,
+            GGMLType::Q4_0_4_4 => 0,
+            GGMLType::Q4_0_4_8 => 0,
+            GGMLType::Q4_0_8_8 => 0,
+            GGMLType::MXFP4 => block_size + 1 + 16,
+            GGMLType::NVFP4 => block_size / 16 + block_size / 2,
+            GGMLType::Q1_0 => 2 + block_size / 128,
+            GGMLType::Count => panic!("GGMLType::Count does not have a size"),
+        }
+    }
+}
+
 impl GGUFModel {
     /// Decode the GGUF file.
     pub(crate) fn decode(&mut self, mut reader: impl std::io::Read) -> Result<()> {
@@ -824,59 +886,9 @@ impl GGUFModel {
 
             let kind = self.read_u32(&mut reader)?;
             let offset = self.read_u64(&mut reader)?;
-            let block_size = match kind {
-                _ if kind < 2 => 1,
-                _ if kind < 10 => 32,
-                _ if kind == 40 => 64,
-                _ if kind == 41 => 128,
-                _ => 256,
-            };
             let ggml_type_kind: GGMLType = kind.try_into()?;
-            let type_size = match ggml_type_kind {
-                GGMLType::F32 => 4,
-                GGMLType::F16 => 2,
-                GGMLType::Q4_0 => 2 + block_size / 2,
-                GGMLType::Q4_1 => 2 + 2 + block_size / 2,
-                GGMLType::Q4_2 => 0,
-                GGMLType::Q4_3 => 0,
-                GGMLType::Q5_0 => 2 + 4 + block_size / 2,
-                GGMLType::Q5_1 => 2 + 2 + 4 + block_size / 2,
-                GGMLType::Q8_0 => 2 + block_size,
-                GGMLType::Q8_1 => 4 + 4 + block_size,
-                GGMLType::Q2_K => block_size / 16 + block_size / 4 + 2 + 2,
-                GGMLType::Q3_K => block_size / 8 + block_size / 4 + 12 + 2,
-                GGMLType::Q4_K => 2 + 2 + 12 + block_size / 2,
-                GGMLType::Q5_K => 2 + 2 + 12 + block_size / 8 + block_size / 2,
-                GGMLType::Q6_K => block_size / 2 + block_size / 4 + block_size / 16 + 2,
-                GGMLType::Q8_K => 4 + block_size + block_size / 16 * 2,
-                GGMLType::IQ2_XXS => 2 + block_size / 8 * 2,
-                GGMLType::IQ2_XS => 2 + block_size / 8 * 2 + block_size / 32,
-                GGMLType::IQ3_XXS => 2 + 3 * (block_size / 8),
-                GGMLType::IQ1_S => 2 + block_size / 8 + block_size / 16,
-                GGMLType::IQ4_NL => 2 + 16,
-                GGMLType::IQ3_S => 2 + 13 * (block_size / 32) + block_size / 64,
-                GGMLType::IQ2_S => 2 + block_size / 4 + block_size / 16,
-                GGMLType::IQ4_XS => 2 + 2 + block_size / 64 + block_size / 2,
-                GGMLType::I8 => 1,
-                GGMLType::I16 => 2,
-                GGMLType::I32 => 4,
-                GGMLType::I64 => 8,
-                GGMLType::F64 => 8,
-                GGMLType::IQ1_M => block_size / 8 + block_size / 16 + block_size / 32,
-                GGMLType::BF16 => 2,
-                GGMLType::IQ4_NL_4_4 => 0,
-                GGMLType::IQ4_NL_4_8 => 0,
-                GGMLType::IQ4_NL_8_8 => 0,
-                GGMLType::TQ1_0 => 2 + block_size / 64 + (block_size - 4 * block_size / 64) / 5,
-                GGMLType::TQ2_0 => 2 + block_size / 4,
-                GGMLType::Q4_0_4_4 => 0,
-                GGMLType::Q4_0_4_8 => 0,
-                GGMLType::Q4_0_8_8 => 0,
-                GGMLType::MXFP4 => block_size + 1 + 16,
-                GGMLType::NVFP4 => block_size / 16 + block_size / 2,
-                GGMLType::Q1_0 => 2 + block_size / 128,
-                GGMLType::Count => unreachable!("GGMLType::Count is not a real data format"),
-            };
+            let block_size = ggml_type_kind.block_size() as u64;
+            let type_size = ggml_type_kind.size_bytes() as u64;
 
             let parameters = shape[0] * shape[1] * shape[2] * shape[3];
             let size = parameters * type_size / block_size;
