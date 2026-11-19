@@ -680,7 +680,9 @@ pub enum GGMLType {
     MXFP4 = 39,
     NVFP4 = 40,
     Q1_0 = 41,
-    Count = 42,
+    Q2_0 = 42,
+    F8_E4M3 = 43,
+    Count = 44,
 }
 
 impl Display for GGMLType {
@@ -728,6 +730,8 @@ impl Display for GGMLType {
             GGMLType::MXFP4 => write!(f, "MXFP4"),
             GGMLType::NVFP4 => write!(f, "NVFP4"),
             GGMLType::Q1_0 => write!(f, "Q1_0"),
+            GGMLType::Q2_0 => write!(f, "Q2_0"),
+            GGMLType::F8_E4M3 => write!(f, "F8_E4M3"),
             GGMLType::Count => write!(f, "Count"),
         }
     }
@@ -778,7 +782,9 @@ impl TryFrom<u32> for GGMLType {
             39 => GGMLType::MXFP4,
             40 => GGMLType::NVFP4,
             41 => GGMLType::Q1_0,
-            42 => GGMLType::Count,
+            42 => GGMLType::Q2_0,
+            43 => GGMLType::F8_E4M3,
+            44 => GGMLType::Count,
             _ => return Err(Error::InvalidGGMLType(value)),
         })
     }
@@ -791,7 +797,9 @@ impl GGMLType {
             _ if kind < 2 => 1,
             _ if kind < 10 => 32,
             _ if kind == 40 => 64,
-            _ if kind == 41 => 128,
+            _ if kind == 41 => 128, // Q1
+            _ if kind == 42 => 64, // Q2
+            _ if kind == 43 => 1, // F8_E4M3
             _ => 256,
         }
     }
@@ -841,6 +849,8 @@ impl GGMLType {
             GGMLType::MXFP4 => block_size + 1 + 16,
             GGMLType::NVFP4 => block_size / 16 + block_size / 2,
             GGMLType::Q1_0 => 2 + block_size / 128,
+            GGMLType::Q2_0 => 2 + block_size / 4,
+            GGMLType::F8_E4M3 => 1,
             GGMLType::Count => panic!("GGMLType::Count does not have a size"),
         }
     }
